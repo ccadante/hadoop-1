@@ -1,2 +1,3 @@
 hadoop学习日志
-XX
+
+作业完成回调URL， job.end.notification.url

@@ -1,7 +1,9 @@
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.hadoop.conf.Configuration;
@@ -14,13 +16,20 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.lib.TotalOrderPartitioner;
+import org.apache.hadoop.mapreduce.InputFormat;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
@@ -69,17 +78,35 @@ public class LargeSortEntry extends Configured implements Tool {
 		lineWriter.close();
 		*/
 		
+
+		
 	    URI uri = new URI(output);
 	    if (fs.delete(new Path(uri), true))
 	    {
 	    	System.out.println("Delete output dir first");
 	    }
 		
-		Job job = Job.getInstance(conf, "LargeSort");
-
+	    Job job = Job.getInstance(conf, "LargeSort");
+	    
+	    /*
+	  	//采样内容输出
+	    FileInputFormat.setInputPaths(job, new Path(input));
+	    FileOutputFormat.setOutputPath(job, new Path(output));
+	    
+		InputSampler.SplitSampler<LongWritable, NullWritable> sampler = 
+				new InputSampler.SplitSampler<LongWritable, NullWritable>(10000);
+		System.out.println(job.getInputFormatClass());
+		//(InputFormat<LongWritable, Text>)ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
+		Object[] samples = sampler.getSample(new SortFileInputFormat(), job);
+		for (Object sample : samples)
+		{
+			System.out.println(sample);
+		}
+		*/
+		
 		job.setJarByClass(LargeSortEntry.class);
 		job.setMapperClass(LargeSortMapper.class);
-		
+		job.setPartitionerClass(TotalOrderPartitioner.class);
 		job.setReducerClass(LargeSortReducer.class);
 		
 		job.setMapOutputKeyClass(LongWritable.class);
@@ -93,21 +120,18 @@ public class LargeSortEntry extends Configured implements Tool {
 		FileInputFormat.setInputPaths(job, new Path(input));
 		FileOutputFormat.setOutputPath(job, new Path(output));
 		
-		JobClient jc = null;
-		job.getStatus();
-		
-		//作业完成回调URL， job.end.notification.url
-		
-		//采样
-		InputSampler.RandomSampler<LongWritable, Text> sampler = 
-				new InputSampler.RandomSampler<LongWritable, Text>(0.1f, 100000);
 		Path partitionFile = new Path(input, "_partitions");
-		TotalOrderPartitioner.setPartitionFile(conf, partitionFile);
+		TotalOrderPartitioner.setPartitionFile(job.getConfiguration(), partitionFile);
+		
+		job.setInputFormatClass(SortFileInputFormat.class);
+		
+		//采样，由于输入是完全随机的，这边直接用效率最够啊的SplitSampler
+		InputSampler.SplitSampler<LongWritable, NullWritable> sampler = 
+				new InputSampler.SplitSampler<LongWritable, NullWritable>(10000);
 		InputSampler.writePartitionFile(job, sampler);
-		URI partitionURI = new URI(partitionFile.toString() + "#_partitions");
-		DistributedCache.addCacheFile(partitionURI, conf);
-		DistributedCache.createSymlink(conf);
-		job.setPartitionerClass(TotalOrderPartitioner.class);
+		
+
+		job.setInputFormatClass(TextInputFormat.class);
 		
 		if (!job.waitForCompletion(true))
 			return -1;
