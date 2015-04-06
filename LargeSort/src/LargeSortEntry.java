@@ -97,7 +97,7 @@ public class LargeSortEntry extends Configured implements Tool {
 		job.getStatus();
 		
 		//作业完成回调URL， job.end.notification.url
-		/*
+		
 		//采样
 		InputSampler.RandomSampler<LongWritable, Text> sampler = 
 				new InputSampler.RandomSampler<LongWritable, Text>(0.1f, 100000);
@@ -108,8 +108,7 @@ public class LargeSortEntry extends Configured implements Tool {
 		DistributedCache.addCacheFile(partitionURI, conf);
 		DistributedCache.createSymlink(conf);
 		job.setPartitionerClass(TotalOrderPartitioner.class);
-		*/
-
+		
 		if (!job.waitForCompletion(true))
 			return -1;
 		
