@@ -51,11 +51,12 @@ public class TurnningRateEntry extends Configured implements Tool {
 		
 	    if (true)
 	    {
-	        //开启下面两句为集群模式
+	        //寮�惎涓嬮潰涓ゅ彞涓洪泦缇ゆā寮�
 	        conf.set("mapreduce.framework.name", "yarn");
 	        conf.set("yarn.resourcemanager.address", "cp01-ma-eval-001.cp01.baidu.com:8032");	
 	        conf.set("fs.default.name", "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020");
 	        conf.set("yarn.resourcemanager.scheduler.address", "cp01-ma-eval-001.cp01.baidu.com:8030");
+	        conf.set("mapreduce.jobhistory.address", "cp01-ma-eval-001.cp01.baidu.com:8084");
 	        conf.set("mapreduce.app-submission.cross-platform", "true");
 	    }
 	    
