@@ -1,4 +1,5 @@
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
@@ -14,6 +15,7 @@ import org.apache.hadoop.io.ArrayWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.ipc.Client;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.lib.TotalOrderPartitioner;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -29,6 +31,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
+import org.apache.hadoop.mapreduce.v2.hs.HistoryClientService;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -42,6 +45,7 @@ public class TurnningRateEntry extends Configured implements Tool {
 		System.exit(ToolRunner.run(new TurnningRateEntry(), args));
 	}
 
+	
 	@Override
 	public int run(String[] args) throws Exception {
 		String input = "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020/weisai/turnning_rate/input/";
@@ -49,15 +53,26 @@ public class TurnningRateEntry extends Configured implements Tool {
 		
 		Configuration conf = getConf();
 		
+		Client c;
+		
+		HistoryClientService s;
+		
 	    if (true)
 	    {
-	        //寮�惎涓嬮潰涓ゅ彞涓洪泦缇ゆā寮�
+	        conf.set("fs.defaultFS", "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020");
+	        
 	        conf.set("mapreduce.framework.name", "yarn");
 	        conf.set("yarn.resourcemanager.address", "cp01-ma-eval-001.cp01.baidu.com:8032");	
-	        conf.set("fs.default.name", "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020");
+	        conf.set("yarn.resourcemanager.resource-tracker.address", "cp01-ma-eval-001.cp01.baidu.com:8031");
 	        conf.set("yarn.resourcemanager.scheduler.address", "cp01-ma-eval-001.cp01.baidu.com:8030");
-	        conf.set("mapreduce.jobhistory.address", "cp01-ma-eval-001.cp01.baidu.com:8084");
+	        
+	        conf.set("mapreduce.jobhistory.address", "cp01-ma-eval-001.cp01.baidu.com:8044");
+	        conf.set("mapreduce.jobhistory.webapp.address", "cp01-ma-eval-001.cp01.baidu.com:8045");
+	        conf.set("mapreduce.jobhistory.done-dir", "/history/done");
+	        conf.set("mapreduce.jobhistory.intermediate-done-dir", "/history/done_intermediate");
+
 	        conf.set("mapreduce.app-submission.cross-platform", "true");
+	        conf.set("mapreduce.job.am-access-disabled", "true");
 	    }
 	    
 		FileSystem fs = null;
@@ -72,9 +87,15 @@ public class TurnningRateEntry extends Configured implements Tool {
 	    {
 	    	System.out.println("Delete output dir first");
 	    }
-		
+	
 	    Job job = Job.getInstance(conf, "TurnningRate");
-		
+
+        File jarFile = EJob.createTempJar("bin");  
+        EJob.addClasspath("/usr/hadoop/conf");  
+        ClassLoader classLoader = EJob.getClassLoader();  
+        Thread.currentThread().setContextClassLoader(classLoader);  
+        
+	    job.setJar(jarFile.toString());
 		job.setJarByClass(TurnningRateEntry.class);
 		job.setMapperClass(TurnningRateMapper.class);
 		job.setPartitionerClass(TurnningRatePartitioner.class);
