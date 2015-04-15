@@ -84,7 +84,6 @@ public class NetLogCollectEntry {
         	return;
         }
         
-		
 		BlockingQueue dataQueue = new LinkedBlockingQueue<byte[]>();
 		Thread dataRecvThread = null;
 		
