@@ -28,6 +28,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.filecache.DistributedCache;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.lib.partition.InputSampler;
@@ -48,7 +49,7 @@ public class BackSearchRateEntry extends Configured implements Tool {
 	
 	@Override
 	public int run(String[] args) throws Exception {
-		String input = "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020/weisai/xsp/format_log/2015-04-17/";
+		String input = "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020/weisai/xsp/format_log/2015-04-10";
 		String output = "hdfs://cp01-ma-eval-001.cp01.baidu.com:8020/weisai/back_search_rate/output/";
 		
 		Configuration conf = getConf();
@@ -71,6 +72,10 @@ public class BackSearchRateEntry extends Configured implements Tool {
 	        conf.set("mapreduce.job.am-access-disabled", "true");
 	    }
 	    
+
+		String curData = input.substring(input.lastIndexOf("/") + 1);
+		conf.set("CURRENT_DATE", curData);
+	    
         File jarFile = EJob.createTempJar("bin");  
         EJob.addClasspath("/usr/hadoop/conf");  
         ClassLoader classLoader = EJob.getClassLoader();  
@@ -89,12 +94,12 @@ public class BackSearchRateEntry extends Configured implements Tool {
 	    	System.out.println("Delete output dir first");
 	    }
 	
-	    Job job = Job.getInstance(conf, "TurnningRate");
+	    Job job = Job.getInstance(conf, "BackSearchRate");
 
-        
 	    job.setJar(jarFile.toString());
 		job.setJarByClass(BackSearchRateEntry.class);
-		job.setMapperClass(BackSearchRateMapper.class);
+		//job.setMapperClass(BackSearchRateMapper.class);
+		job.setMapperClass(RawDataBackSearchRateMapper.class);
 		job.setPartitionerClass(BackSearchRatePartitioner.class);
 		job.setReducerClass(BackSearchRateReducer.class);
 		
@@ -104,6 +109,7 @@ public class BackSearchRateEntry extends Configured implements Tool {
 		FileInputFormat.setInputPaths(job, new Path(input));
 		FileOutputFormat.setOutputPath(job, new Path(output));
 		
+		job.setNumReduceTasks(10);
 		job.setInputFormatClass(TextInputFormat.class);
 		
 		if (!job.waitForCompletion(true))

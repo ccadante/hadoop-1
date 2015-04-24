@@ -2,18 +2,25 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Mapper.Context;
+import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.log4j.Logger;
 
 
 public class BackSearchRateMapper extends Mapper<LongWritable, Text, Text, NullWritable> {
 
 	private static final Logger _logger = Logger.getLogger(BackSearchRateMapper.class);
-	private static final SimpleDateFormat _date_format =  new SimpleDateFormat("yyyy-MM-ddHH:mm:ss");
+
 	
+	protected void setup(Context context
+              ) throws IOException, InterruptedException {
+	}
+	  
 	public void map(LongWritable key, Text value, Context context)
 			throws IOException, InterruptedException {
 		
